@@ -2,19 +2,28 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const redisClient = require("../config/redis");
 const sendOTPEmail = require("../config/email");
 
 const router = express.Router();
+const otpStore = new Map();
 
 // 🔹 User Registration
 router.post("/register", async (req, res) => {
-  let { name, email, password, profileImage, company, age, dateOfBirth } = req.body;
+  let { name, email, password, profileImage, company, age, dateOfBirth } =
+    req.body;
   const dob = dateOfBirth ? new Date(dateOfBirth) : null;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword, company, age, dob, profileImage });
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      company,
+      age,
+      dob,
+      profileImage,
+    });
     await user.save();
     res.status(201).json({ message: "User Registered Successfully" });
   } catch (error) {
@@ -31,11 +40,13 @@ router.post("/login", async (req, res) => {
     if (!user) return res.status(401).json({ message: "Invalid Credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid Credentials" });
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid Credentials" });
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
-    await redisClient.setEx(email, 600, otp.toString()); // OTP expires in 10 minutes
+    const seconds = Date.now() + (10 * 60 * 1000); // 10 minutes
+    otpStore.set(email, { otp, expiresAt: seconds }); // OTP expires in 10 minutes
 
     // Send OTP Email
     await sendOTPEmail(email, otp);
@@ -49,15 +60,19 @@ router.post("/login", async (req, res) => {
 // 🔹 OTP Verification
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
-  
+
   try {
-    const storedOTP = await redisClient.get(email);
-    console.log(storedOTP, otp);
-    
-    if (!storedOTP || storedOTP != otp) return res.status(401).json({ message: "Invalid OTP" });
+    const entry = otpStore.get(email);
+    if (!entry || entry.otp != otp || Date.now() > entry.expiresAt) {
+      return res.status(401).json({ message: "Invalid OTP" }); // Invalid or expired
+    }
+
+    otpStore.delete(email); // Remove after use
 
     // Generate JWT Token
-    const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     res.status(200).json({ message: "OTP Verified", token });
   } catch (error) {
