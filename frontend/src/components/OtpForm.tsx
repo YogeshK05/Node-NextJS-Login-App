@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -30,6 +29,7 @@ export default function OtpForm({ email }: { email: string }) {
       // Include email when redirecting to thank-you page
       router.push(`/thank-you?email=${encodeURIComponent(email)}`);
     } catch (err) {
+      console.log(err);
       setError('Invalid or expired OTP');
       router.push('/error');
     }

@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserData, deleteAccount } from '@/lib/api';
 
@@ -15,7 +13,8 @@ interface UserData {
   profileImage: string;
 }
 
-export default function ThankYouPage() {
+// ✅ Component wrapped in Suspense for handling useSearchParams
+function ThankYouContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -33,6 +32,7 @@ export default function ThankYouPage() {
         const data = await getUserData(email);
         setUserData(data);
       } catch (error) {
+        console.error('Error fetching user data:', error);
         setError('Failed to fetch user data');
         setTimeout(() => {
           router.push('/login');
@@ -51,6 +51,7 @@ export default function ThankYouPage() {
       localStorage.removeItem('token');
       router.push('/login');
     } catch (error) {
+      console.error('Error deleting account:', error);
       setError('Failed to delete account');
     }
   };
@@ -83,16 +84,16 @@ export default function ThankYouPage() {
       <div className="bg-white p-8 rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold mb-6">Welcome, {userData.name}!</h1>
         <div className="space-y-4">
-          <div className="mb-6">
-            {userData.profileImage && (
+          {userData.profileImage && (
+            <div className="mb-6">
               <img
                 src={userData.profileImage}
                 alt="Profile"
                 className="w-32 h-32 rounded-full mx-auto object-cover"
               />
-            )}
-          </div>
-          
+            </div>
+          )}
+
           <div className="space-y-2">
             <p><strong>Email:</strong> {userData.email}</p>
             <p><strong>Company:</strong> {userData.company}</p>
@@ -109,5 +110,14 @@ export default function ThankYouPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ✅ Root component using Suspense
+export default function ThankYouPage() {
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <ThankYouContent />
+    </Suspense>
   );
 }

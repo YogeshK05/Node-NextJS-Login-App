@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -27,6 +26,7 @@ export default function LoginForm() {
       // Redirect to OTP page with email parameter
       router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
     } catch (err) {
+      console.log(err);
       setError('Login failed. Please check your credentials.');
       router.push('/error');
     }
