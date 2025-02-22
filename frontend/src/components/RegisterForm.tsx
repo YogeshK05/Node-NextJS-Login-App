@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -39,15 +37,15 @@ const schema = yup
       .required("Company name is required")
       .min(2, "Company name must be at least 2 characters"),
     profileImage: yup
-      .mixed()
+      .mixed<FileList>()
       .required("Profile photo is required")
-      .test("fileType", "Only JPEG and PNG files are allowed", (value: any) => {
+      .test("fileType", "Only JPEG and PNG files are allowed", (value) => {
         if (!value) return false;
         return ["image/jpeg", "image/png"].includes(value[0]?.type);
       })
-      .test("fileSize", "File must be less than 5MB", (value: any) => {
+      .test("fileSize", "File must be less than 2MB", (value) => {
         if (!value) return false;
-        return value[0]?.size <= 5000000;
+        return value[0]?.size <= 2000000;
       }),
   })
   .required();
@@ -69,7 +67,7 @@ export default function RegisterForm() {
   });
 
   // Watch the file input for preview
-  const watchProfileImage = watch("profileImage");
+  watch("profileImage");
 
   // Handle image preview
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +95,7 @@ export default function RegisterForm() {
       await registerUser(formData);
       router.push("/");
     } catch (err) {
+      console.log(err);
       setError("Registration failed. Please try again.");
     }
   };
